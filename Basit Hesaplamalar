@@ -3,7 +3,7 @@
 
 int main() {
 
-//1'den 81'e kadar 4er artan sayýlarý toplayan program
+//1'den 81'e kadar 4er artan sayilari toplayan program
 int i,toplam;
 for(i=1;i<=81;i+=4){
 	toplam+=i;
@@ -38,7 +38,7 @@ printf("--------------------------------------------------------\n");
 	
 	int i,j,taban;
 	
-	printf("Çizdirmek istediginiz ucgenin tabanýndaki yildiz sayisini giriniz ");
+	printf("Ã‡izdirmek istediginiz ucgenin tabanindaki yildiz sayisini giriniz ");
 	scanf("%d",&taban);
 	
 	for(i=1;i<=taban;i++){
