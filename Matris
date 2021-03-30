@@ -1,0 +1,26 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+	
+	int dizi[2][2];
+	dizi [0][0]= 15;
+	dizi[0][1]= 23;
+	dizi[1][0]=58;
+	dizi [1][1]=42;
+	printf(" %d   ",dizi[0][0]);
+	printf(" %d\n",dizi[0][1]);
+	printf(" %d   ",dizi[1][0]);
+	printf(" %d\n",dizi[1][1]);
+	
+	int matris[2][3]={10,20,30,40,50,60};
+	int i,j;
+	
+	for(j=0;j<2;j++){
+
+	for(i=0;i<3;i++){
+		printf("%d  ",matris[j][i]);
+	}
+	printf("\n");
+	}
+  }
