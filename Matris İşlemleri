@@ -15,18 +15,18 @@ int main() {
 		printf("\n");
 	}
 printf("-----------------------------------------\n");	
-	//Matrislerde çarpma iþlemi
+	//Matrislerde Ã§arpma iÃ¾lemi
 	int k,l,n,total[k][n],satir,esit,sutun;
 	int m1[k][l];
 	int m2[l][n];
 	
-	printf("Birinci matrisin sutun, 2. matrisin satir sayýsýný giriniz : ");
+	printf("Birinci matrisin sutun, 2. matrisin satir sayisini giriniz : ");
 	scanf("%d",&esit);
 	
 	printf("Birinci matrisin satir : ");
 	scanf("%d",&satir);
 	
-	printf("2. matrisin sutun sayýsýný giriniz : ");
+	printf("2. matrisin sutun sayisini giriniz : ");
 	scanf("%d",&sutun);
 	
 	for(k=0;k<satir;k++){
@@ -42,16 +42,5 @@ printf("-----------------------------------------\n");
 }
 printf("\n");
 }
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	return 0;
 }
