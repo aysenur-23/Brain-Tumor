@@ -1,0 +1,553 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Untitled2.ipynb",
+      "provenance": [],
+      "collapsed_sections": [],
+      "authorship_tag": "ABX9TyMH0NsFO3Tuc4RPSCiGjzuO",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/aysenur-23/C/blob/main/BrainTumorClassification\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 5,
+      "metadata": {
+        "id": "MKEMlkEe7K2j"
+      },
+      "outputs": [],
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "import seaborn as sns\n",
+        "import numpy as np\n",
+        "import pandas as pd\n",
+        "import random\n",
+        "from tqdm import tqdm\n",
+        "import time\n",
+        "import cv2\n",
+        "\n",
+        "import torch.cuda\n",
+        "import torch.nn as nn\n",
+        "import torchvision.models as models\n",
+        "from torch.nn import Linear, ReLU, MSELoss, L1Loss, Sequential, Conv2d, ConvTranspose2d, MaxPool2d, AdaptiveAvgPool2d, Module, BatchNorm2d, Sigmoid, Dropout\n",
+        "import torch.optim as optim\n",
+        "from torch.autograd import Variable\n",
+        "from torch.utils.data import random_split\n",
+        "from torchvision import datasets, transforms\n",
+        "\n",
+        "from pytorch_model_summary import summary\n",
+        "import os\n",
+        "import torchvision"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "torchvision.__version__"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 35
+        },
+        "id": "-e-p2qRQ9jqU",
+        "outputId": "ac9bcfa4-c799-4095-819b-bbe9ed3f1fd1"
+      },
+      "execution_count": 35,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "'0.12.0+cu113'"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 35
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#seed everything\n",
+        "seed = 42\n",
+        "# python RNG\n",
+        "random.seed(seed)\n",
+        "# pytorch RNGs\n",
+        "torch.manual_seed(seed)\n",
+        "torch.backends.cudnn.deterministic = True\n",
+        "if torch.cuda.is_available(): torch.cuda.manual_seed_all(seed)\n",
+        "# numpy RNG\n",
+        "np.random.seed(seed)"
+      ],
+      "metadata": {
+        "id": "QRwZZXRG9S7F"
+      },
+      "execution_count": 7,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "gpu_avail = torch.cuda.is_available()\n",
+        "print(f\"Is the GPU available? {gpu_avail}\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "-YyB__TkAFz4",
+        "outputId": "117824b7-c6d1-4a52-b8c6-31243f0420aa"
+      },
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Is the GPU available? False\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "device = torch.device(\"cuda\") if torch.cuda.is_available() else torch.device(\"cpu\")\n",
+        "print(\"Device\", device)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "KA8NXF0RAKJd",
+        "outputId": "b22ead6b-0a79-459c-9c51-cf4fd9ba7ad7"
+      },
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Device cpu\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "data_dir = (\"C://Users//aslan//OneDrive//Masaüstü//Brain-Tumor-MRI-Classification-main//Training//glioma\")\n"
+      ],
+      "metadata": {
+        "id": "8babPJprAO6Z"
+      },
+      "execution_count": 17,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "image = plt.imread(\"C://Users//aslan//OneDrive//Masaüstü//Brain-Tumor-MRI-Classification-main//Training//glioma//Tr-gl_0013.jpg\")\n",
+        "print(f\"The shape of the images in the dataset is {image.shape}.\")\n",
+        "print(\"Here is an example of an image in the dataset:\")\n",
+        "plt.imshow(image)"
+      ],
+      "metadata": {
+        "id": "vsppEEVYAZxe"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "IMAGE_SIZE = 224\n",
+        "BATCH_SIZE = 8 \n",
+        "NUM_WORKERS = 2"
+      ],
+      "metadata": {
+        "id": "9NWDL8aqDbwm"
+      },
+      "execution_count": 14,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def get_train_transform(IMAGE_SIZE):\n",
+        "    train_transform = transforms.Compose([\n",
+        "        transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),\n",
+        "        transforms.RandomHorizontalFlip(p=0.5),\n",
+        "        transforms.RandomVerticalFlip(p=0.5),\n",
+        "        transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),\n",
+        "        transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.5),\n",
+        "        transforms.ToTensor(),\n",
+        "        transforms.Normalize(           #This normalization is applied as it is the same applied to the images in ImageNet\n",
+        "            mean=[0.485, 0.456, 0.406], #and we'll be using Trasnfer Learning (for example EfficientNetB0)\n",
+        "            std=[0.229, 0.224, 0.225]\n",
+        "            )\n",
+        "    ])\n",
+        "    return train_transform"
+      ],
+      "metadata": {
+        "id": "-Sjk53FuDpT2"
+      },
+      "execution_count": 15,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "dataset = datasets.ImageFolder(data_dir, transform=(get_train_transform(IMAGE_SIZE)))\n",
+        "lengths = [int(len(dataset)*0.8), len(dataset)-int(len(dataset)*0.8)]\n",
+        "train_dataset, val_dataset = random_split(dataset, lengths)\n",
+        "train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, num_workers=NUM_WORKERS, shuffle=True)\n",
+        "valid_loader = torch.utils.data.DataLoader(val_dataset, batch_size=16, num_workers=NUM_WORKERS, shuffle=False)"
+      ],
+      "metadata": {
+        "id": "GuE7R3ovDuEh"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "dataset.class_to_idx"
+      ],
+      "metadata": {
+        "id": "_aSgENJSEUBO"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def save_model(epochs, model, optimizer, criterion):\n",
+        "    \"\"\"\n",
+        "    Function to save the trained model to disk.\n",
+        "    \"\"\"\n",
+        "    torch.save({\n",
+        "                'epoch': epochs,\n",
+        "                'model_state_dict': model.state_dict(),\n",
+        "                'optimizer_state_dict': optimizer.state_dict(),\n",
+        "                'loss': criterion,\n",
+        "                }, f\"/kaggle/working/model.pth\")\n",
+        "def save_plots(train_acc, valid_acc, train_loss, valid_loss):\n",
+        "    \"\"\"\n",
+        "    Function to save the loss and accuracy plots to disk.\n",
+        "    \"\"\"\n",
+        "    # accuracy plots\n",
+        "    plt.figure(figsize=(10, 7))\n",
+        "    plt.plot(\n",
+        "        train_acc, color='green', linestyle='-', \n",
+        "        label='train accuracy'\n",
+        "    )\n",
+        "    plt.plot(\n",
+        "        valid_acc, color='blue', linestyle='-', \n",
+        "        label='validataion accuracy'\n",
+        "    )\n",
+        "    plt.xlabel('Epochs')\n",
+        "    plt.ylabel('Accuracy')\n",
+        "    plt.legend()\n",
+        "    plt.savefig(f\"/kaggle/working/accuracy.png\")\n",
+        "    \n",
+        "    # loss plots\n",
+        "    plt.figure(figsize=(10, 7))\n",
+        "    plt.plot(\n",
+        "        train_loss, color='orange', linestyle='-', \n",
+        "        label='train loss'\n",
+        "    )\n",
+        "    plt.plot(\n",
+        "        valid_loss, color='red', linestyle='-', \n",
+        "        label='validataion loss'\n",
+        "    )\n",
+        "    plt.xlabel('Epochs')\n",
+        "    plt.ylabel('Loss')\n",
+        "    plt.legend()\n",
+        "    plt.savefig(f\"/kaggle/working/loss.png\")"
+      ],
+      "metadata": {
+        "id": "Y0S-FqUkEc3l"
+      },
+      "execution_count": 23,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def build_model(pretrained=True, fine_tune=True, num_classes=4):\n",
+        "    if pretrained:\n",
+        "        print('[INFO]: Loading pre-trained weights')\n",
+        "    else:\n",
+        "        print('[INFO]: Not loading pre-trained weights')\n",
+        "    model = models.efficientnet_b0(pretrained=pretrained)\n",
+        "    if fine_tune:\n",
+        "        print('[INFO]: Fine-tuning all layers...')\n",
+        "        for params in model.parameters():\n",
+        "            params.requires_grad = True\n",
+        "    elif not fine_tune:\n",
+        "        print('[INFO]: Freezing hidden layers...')\n",
+        "        for params in model.parameters():\n",
+        "            params.requires_grad = False\n",
+        "    # Change the final classification head.\n",
+        "    model.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes)\n",
+        "    return model"
+      ],
+      "metadata": {
+        "id": "DPdd4R_0E2Ry"
+      },
+      "execution_count": 22,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def train(model, trainloader, optimizer, criterion):\n",
+        "    model.train()\n",
+        "    print('Training')\n",
+        "    train_running_loss = 0.0\n",
+        "    train_running_correct = 0\n",
+        "    counter = 0\n",
+        "    for i, data in tqdm(enumerate(trainloader), total=len(trainloader)):\n",
+        "        counter += 1\n",
+        "        image, labels = data\n",
+        "        image = image.to(device)\n",
+        "        labels = labels.to(device)\n",
+        "        optimizer.zero_grad()\n",
+        "        # Forward pass.\n",
+        "        outputs = model(image)\n",
+        "        # Calculate the loss.\n",
+        "        loss = criterion(outputs, labels)\n",
+        "        train_running_loss += loss.item()\n",
+        "        # Calculate the accuracy.\n",
+        "        _, preds = torch.max(outputs.data, 1)\n",
+        "        train_running_correct += (preds == labels).sum().item()\n",
+        "        # Backpropagation\n",
+        "        loss.backward()\n",
+        "        # Update the weights.\n",
+        "        optimizer.step()\n",
+        "    \n",
+        "    # Loss and accuracy for the complete epoch.\n",
+        "    epoch_loss = train_running_loss / counter\n",
+        "    epoch_acc = 100. * (train_running_correct / len(trainloader.dataset))\n",
+        "    return epoch_loss, epoch_acc"
+      ],
+      "metadata": {
+        "id": "-GtrcbcgFFf0"
+      },
+      "execution_count": 24,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "args = {'learning_rate' : 0.0001, 'epochs' : 15}\n",
+        "dataset_classes = dataset.class_to_idx"
+      ],
+      "metadata": {
+        "id": "V9-_ea9OFLnN"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "lr = args['learning_rate']\n",
+        "epochs = args['epochs']\n",
+        "device = ('cuda' if torch.cuda.is_available() else 'cpu')\n",
+        "print(f\"Computation device: {device}\")\n",
+        "print(f\"Learning rate: {lr}\")\n",
+        "print(f\"Epochs to train for: {epochs}\\n\")\n",
+        "model = build_model(\n",
+        "    pretrained=True,\n",
+        "    fine_tune=True, \n",
+        "    num_classes=len(dataset_classes)\n",
+        ").to(device)\n",
+        "\n",
+        "# Total parameters and trainable parameters.\n",
+        "total_params = sum(p.numel() for p in model.parameters())\n",
+        "print(f\"{total_params:,} total parameters.\")\n",
+        "total_trainable_params = sum(\n",
+        "    p.numel() for p in model.parameters() if p.requires_grad)\n",
+        "print(f\"{total_trainable_params:,} training parameters.\")\n",
+        "# Optimizer.\n",
+        "optimizer = optim.Adam(model.parameters(), lr=lr)\n",
+        "# Loss function.\n",
+        "criterion = nn.CrossEntropyLoss()\n",
+        "# Lists to keep track of losses and accuracies.\n",
+        "train_loss, valid_loss = [], []\n",
+        "train_acc, valid_acc = [], []\n",
+        "# Start the training.\n",
+        "for epoch in range(epochs):\n",
+        "    print(f\"[INFO]: Epoch {epoch+1} of {epochs}\")\n",
+        "    train_epoch_loss, train_epoch_acc = train(model, train_loader, \n",
+        "                                            optimizer, criterion)\n",
+        "    valid_epoch_loss, valid_epoch_acc = validate(model, valid_loader,  \n",
+        "                                                criterion)\n",
+        "    train_loss.append(train_epoch_loss)\n",
+        "    valid_loss.append(valid_epoch_loss)\n",
+        "    train_acc.append(train_epoch_acc)\n",
+        "    valid_acc.append(valid_epoch_acc)\n",
+        "    print(f\"Training loss: {train_epoch_loss:.3f}, training acc: {train_epoch_acc:.3f}\")\n",
+        "    print(f\"Validation loss: {valid_epoch_loss:.3f}, validation acc: {valid_epoch_acc:.3f}\")\n",
+        "    print('-'*50)\n",
+        "    time.sleep(5)\n",
+        "\n",
+        "# Save the trained model weights.\n",
+        "save_model(epochs, model, optimizer, criterion)\n",
+        "# Save the loss and accuracy plots.\n",
+        "save_plots(train_acc, valid_acc, train_loss, valid_loss)\n",
+        "print('TRAINING COMPLETE')"
+      ],
+      "metadata": {
+        "id": "_pknSft9FTgr"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "d = {'Id':[], 'Predicted':[]}"
+      ],
+      "metadata": {
+        "id": "NF_g8u--Feo3"
+      },
+      "execution_count": 27,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "path = \"../input/machinelearninghackathon/Test/Test\""
+      ],
+      "metadata": {
+        "id": "5trBAkPDFilz"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "encoding_df = pd.read_csv(\"../input/machinelearninghackathon/encoding_values.csv\")"
+      ],
+      "metadata": {
+        "id": "l2vWuxH8Fmgs"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "encoding_dict = {\"meningioma_tumor\":0, \"no_tumor\":1, \"glioma_tumor\":2, \"pituitary_tumor\":3}"
+      ],
+      "metadata": {
+        "id": "yMEysgrzKZg5"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Load the trained model.\n",
+        "model = build_model(pretrained=False, fine_tune=False, num_classes=4)\n",
+        "checkpoint = torch.load('./model.pth', map_location='cpu')\n",
+        "print('Loading trained model weights...')\n",
+        "model.load_state_dict(checkpoint['model_state_dict'])"
+      ],
+      "metadata": {
+        "id": "_vbN71yGKdyE"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "for dirname, _, filenames in os.walk(path):\n",
+        "    for filename in filenames:\n",
+        "        image_path = os.path.join(dirname, filename)\n",
+        "        d['Id'].append(filename.split('.')[0])\n",
+        "        image = cv2.imread(image_path)\n",
+        "        orig_image = image.copy()\n",
+        "        # Preprocess the image\n",
+        "        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)\n",
+        "        transform = transforms.Compose([\n",
+        "            transforms.ToPILImage(),\n",
+        "            transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),\n",
+        "            transforms.ToTensor(),\n",
+        "            transforms.Normalize(\n",
+        "                mean=[0.485, 0.456, 0.406],\n",
+        "                std=[0.229, 0.224, 0.225]\n",
+        "            )\n",
+        "        ])\n",
+        "        image = transform(image)\n",
+        "        image = torch.unsqueeze(image, 0)\n",
+        "        image = image.to(\"cpu\")\n",
+        "\n",
+        "        # Forward pass throught the image.\n",
+        "        outputs = model(image)\n",
+        "        outputs = outputs.detach().numpy()\n",
+        "        pred_class_name = encoding_dict[dataset.classes[np.argmax(outputs[0])]]\n",
+        "        d['Predicted'].append(pred_class_name)"
+      ],
+      "metadata": {
+        "id": "t0q2xjqCKhbX"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "submission = pd.DataFrame(d)"
+      ],
+      "metadata": {
+        "id": "C925LyOxKobC"
+      },
+      "execution_count": 31,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "submission.to_csv(\"submission.csv\", index = False)"
+      ],
+      "metadata": {
+        "id": "WRE3UpdRKtrS"
+      },
+      "execution_count": 32,
+      "outputs": []
+    }
+  ]
+}
